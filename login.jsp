@@ -1,15 +1,171 @@
-<!DOCTYPE html>
-<html lang="en">
-<title>British Library</title>
+<!DOCTYPE HTML>
+<%@ page import="edu.internet2.middleware.shibboleth.idp.authn.LoginContext" %>
+<%@ page import="edu.internet2.middleware.shibboleth.idp.authn.ShibbolethSSOLoginContext" %>
+<%@ page import="edu.internet2.middleware.shibboleth.idp.session.*" %>
+<%@ page import="edu.internet2.middleware.shibboleth.idp.util.HttpServletHelper" %>
+<%@ page import="org.opensaml.saml2.metadata.*" %>
+<%@ page import="java.io.*" %>
+<%@ page import="java.util.*" %>
+<%@ page import="java.net.*" %>
+<%@ taglib uri="urn:mace:shibboleth:2.0:idp:ui" prefix="idpui" %> 
+<%
+    Boolean debuggingHeadFlag         = false;    // Set to true to see header variables table
+    Boolean debuggingVarFlag          = false;    // Set to true to see header variables table
+
+/*
+ * Defaults for the login page - generic BLOA registration
+ */
+    Boolean  guestLogin               = false;    // Set true (by the entityID) to display the guest login option
+    Boolean  registerLink             = false;    // Set true (by the entityID) to display the register option
+    Boolean  rrupgradeLink            = false;    // Set true (by the entityID) to display the reader upgrade option
+    Boolean  readerLink               = false;    // Display the "How to be a reader" information
+    Boolean  accountLogin             = true;     // Set true to display the BLOA login option
+    Integer  registerServiceId        = 0;        // Default service ID for registering new accounts
+
+    String   referringPage            = "https://myaccount.bl.uk";   // Referring page for post registration
+    String   registerServiceName      = "British Library Online Account";
+    String   registerDescription      = "";
+
+    String   registerServiceURL       = "https://registeruat.bl.uk/RegOnline.aspx";
+    String   registerServiceDirectURL = "https://registeruat.bl.uk/UI/RegOnlineAccount.aspx";     // Only works for serviceid=0
+    String   registerReaderPassURL    = "http://www.bl.uk/help/how-to-get-a-reader-pass";
+    String   forgottenUsernameURL     = "https://myaccountuat.bl.uk/Ui/ForgottenUsername.aspx";
+    String   forgottenPasswordURL     = "https://myaccountuat.bl.uk/Ui/ForgottenPassword.aspx";
+    String   changePasswordURL        = "https://myaccountuat.bl.uk/Ui/MyAccountLogin.aspx";
+    String   rrUpgradeURL             = "https://registeruat.bl.uk/Ui/ReaderMigration01.aspx";
+
+    // Did the previous login attempt fail?
+    Boolean  loginFailed              = "true".equals(request.getAttribute("loginFailed"));
+
+    // Credentials to be used for guest login form
+    String   guestUsername            = "OnlineShopGuest";
+    String   guestPassword            = "NotASecret";
+
+    // Entity discovery
+    String   entityID                 = "";
+    String   entitySubSiteID          = "explore";
+    String   entrySite                = request.getHeader("referer");
+
+    //
+    // Get the SP entityID
+    //
+    LoginContext loginContext = HttpServletHelper.getLoginContext(HttpServletHelper.getStorageService(application), application, request);
+    if(loginContext != null) {
+        EntityDescriptor entityDescriptor = HttpServletHelper.getRelyingPartyMetadata(loginContext.getRelyingPartyId(), HttpServletHelper.getRelyingPartyConfirmationManager(application)); 
+        entityID = entityDescriptor.getEntityID();
+    } 
+
+    //
+    // Map the entityID's to the correct style of login page
+    //
+    // Explore/SearchArchives/OrderSubmission is the DEFAULT page
+    //if (entityID.equals("https://ssoa.bl.uk/sp/shibboleth/orangefe1"))          { entitySubSiteID = "explore"; }
+    // 
+    
+    // BLDSS API
+    if (entityID.equals("https://sso.bl.uk/sp/shibboleth/bldssapipr"))          { entitySubSiteID = "bldssapi"; }
+
+    // Default
+    if (entityID.equals("https://www.bl.uk/shibboleth"))                        { entitySubSiteID = "default"; }
+    if (entityID.equals("https://nginx-nle.bl.uk/shibboleth"))                  { entitySubSiteID = "default"; }
+
+    // Business and management portal
+    if (entityID.equals("https://www.bl.uk/sp/shibboleth/mbsportal"))           { entitySubSiteID = "mbsportal"; }
+    if (entityID.equals("https://nginx-nle.bl.uk/sp/shibboleth/mbsportal"))     { entitySubSiteID = "mbsportal"; }
+
+    // Social welfare portal    
+    if (entityID.equals("https://www.bl.uk/sp/shibboleth/swportal"))            { entitySubSiteID = "swportal"; }
+    if (entityID.equals("https://nginx-nle.bl.uk/sp/shibboleth/swportal"))      { entitySubSiteID = "swportal"; }
+
+    // Online shop
+    if (entityID.equals("https://www.bl.uk/sp/shibboleth/shop"))                { entitySubSiteID = "onlineshop"; }
+    if (entityID.equals("https://nginx-nle.bl.uk/sp/shibboleth/shop"))          { entitySubSiteID = "onlineshop"; }
+    if (entityID.equals("http://cdstaging.bl.uk/shop"))                         { entitySubSiteID = "onlineshop"; }
+
+    // Override entity ID for testing
+    String testLogin = request.getParameter("testlogin");
+    if( testLogin != null ) { entitySubSiteID = testLogin; }
+
+    // Customize the login form 
+    if("default".equals(entitySubSiteID)) {
+      guestLogin = true; 
+      registerLink = true; 
+      registerServiceId = 2;  
+      registerServiceName = "SERVICE NAME";
+      referringPage = "http://www.bl.uk/";
+      registerDescription = "REGISTRATION DESCRIPTION";
+    }
+
+    if("onlineshop".equals(entitySubSiteID)) {
+      guestLogin = true; 
+      registerServiceId = 6;  
+      registerServiceName = "the British Library Shop";
+      referringPage = "http://nginx-nle.bl.uk/shop"; 
+    }
+
+    if("mbsportal".indexOf(entitySubSiteID)>=0) {
+      registerLink = true; 
+      registerServiceId = 2; 
+      referringPage = "https://www.bl.uk/business-management"; 
+      registerServiceName = "the Business and management portal";
+      registerDescription = "Start by registering for an online account and then choose your Business and management portal service preferences.";
+    }
+
+    if("swportal".equals(entitySubSiteID)) {
+      registerLink = true; 
+      registerServiceId = 5; 
+      referringPage = "https://www.bl.uk/social-welfare"; 
+      registerServiceName = "the Social welfare portal";
+      registerDescription = "Start by registering for an online account and then choose your Social welfare portal preferences.";
+    }
+
+    if("bldssapi".equals(entitySubSiteID)) {
+      registerLink = true; 
+      registerServiceId = 3; 
+      referringPage = "https://api.bldss.bl.uk"; 
+      registerServiceName = "British Library On Demand";
+      registerDescription = "Register for British Library On Demand.";
+    }
+
+    if("explore".equals(entitySubSiteID)) {
+      registerServiceId = 0; 
+      registerServiceURL = registerServiceDirectURL;
+
+      registerLink = true; 
+      rrupgradeLink = true;
+      readerLink = false;
+      referringPage = "http://explore.bl.uk/"; 
+      registerServiceName = "our catalogue";
+      registerDescription = "Register your details to use our services.";
+    }
+
+// If there is no Shibboleth IDP/SP entityID then show error message
+//    if(loginContext == null and entitySubSiteID == "") {
+    if(entitySubSiteID == "") {
+      registerLink = false;
+      guestLogin = false;
+      accountLogin = true;
+      registerServiceName = "British Library";
+    }
+
+
+// If the account login failed (bad username/email) then only dispay the registered login
+    if (loginFailed) {
+      guestLogin = false;
+      registerLink = false;
+      //rrupgradeLink = false;
+    }
+%>
+<html>
+<title>Login to the British Library</title>
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!--link rel="stylesheet" href="https://www.w3schools.com/lib/w3.css"-->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-  <link rel="stylesheet" href="css/w3.css">
-  <link rel="stylesheet" href="css/bl-w3.css">
-  <link rel="stylesheet" href="css/bl-theme-purple.css">
+  <link rel="stylesheet" href="/idp/css/w3.css">
+  <link rel="stylesheet" href="/idp/css/bl-w3.css">
 <script 
   src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
   integrity="sha256-k2WSCIexGzOj3Euiig+TlR8gA0EmPjuc79OEeY5L45g="
@@ -24,13 +180,14 @@
 
   <header class="">
     <div class="w3-container bl-theme-dark bl-padding-left-off bl-logo-height bl-header-border w3-hide-small">
-      <div class="w3-left"><img class="bl-logo-border" src="images/bl_logo_100.gif" width="52px" height="100px"/></div>
+      <div class="w3-left"><img class="bl-logo-border" src="//www.bl.uk/britishlibrary/resources/global/images/bl_logo_100.gif" width="52px" height="100px"/></div>
     </div>
-    <div class="w3-container bl-theme-mid"><h2>Service title</div>
+    <div class="w3-container bl-theme-mid"><h2>Secure login to <%= registerServiceName %></h2></div>
   </header>
 
   <div class="w3-container bl-white w3-padding-16 bl-content-height">
 
+<% if(accountLogin) { %>                                                    
 
     <div class="w3-half w3-padding">
       
@@ -77,6 +234,18 @@
       </form>
     </div>
 
+<% } else { %>
+
+  <h3>Error: Service undefined</h3>
+  <p><strong>No entity context defined.</strong></p>
+  <p>Cause: This message is displayed when no Shibboleth session has been established by the browser. Check the service provider configuration.</p>
+  <br/><br/><br/><br/><br/><br/><br/><br/>
+
+<% } %>
+                                                   
+<% 
+if(guestLogin) { 
+%>
     <div class="w3-half w3-padding">
       <form action='<%=request.getAttribute("actionUrl")%>' method="post" autocomplete="off" name="logonform">
         <input name="j_username" type="hidden" tabindex="1" xstyle="width: 180px;" id="username" value="<%= guestUsername %>"/>
@@ -88,6 +257,9 @@
       </form>
     </div>
                                             
+<% }
+if (registerLink) {
+%> 
     <div class="w3-half w3-padding">
       <legend>Are you new to the British Library?</legend>
 
@@ -99,6 +271,9 @@
       </div>
     </div>
 
+<% }
+if (readerLink) {
+%> 
     <div class="w3-half w3-padding">
       <legend>Do you want to see our collections?</legend>
 
@@ -109,6 +284,9 @@
       </div>
     </div>
 
+<% }
+if (rrupgradeLink) {
+%>  
     <div class="w3-half w3-padding">
         <legend>Do you have a Reader Pass?</legend>
 
@@ -119,6 +297,7 @@
           <a class="w3-btn bl-theme-accent1" href="<%=rrUpgradeURL%>">Activate <i class="fa fa-caret-right bl-fa-padding"></i></a>
         </div>
     </div>
+<% } %> 
 
     <div id="IncorrectCredentials" class="w3-modal">
       <div class="w3-modal-content w3-card-8">
@@ -228,6 +407,23 @@
       </div>
     </div>
 
+<% if(debuggingVarFlag) { %>
+<pre>
+<b>Debugging</b>
+Shibboleth2
+entityID        : <%= entityID %>    
+entrySite       : <%= entrySite %>
+entitySubSiteID : <%= entitySubSiteID %>    
+TestLogin       : <%= request.getParameter("testlogin") %>
+actionUrl       : <%= request.getAttribute("actionUrl") %>
+loginFailed     : <%= request.getAttribute("loginFailed") %>
+guestLogin      : <%= guestLogin %>
+registerLink    : <%= registerLink %>
+referringPage   : <%= referringPage %>
+
+</pre>
+<% } %>
+
 <script>
 $( document ).ready(function() {
   $("#btnNeedHelp").click(function(){ $( '#NeedHelp' ).show(); return false; });
@@ -238,6 +434,11 @@ $( document ).ready(function() {
 
   $("#btnMoreInfoNew").click(function(){ $( '#MoreInfoNew' ).show(); return false; });
   $("#MoreInfoNew").click(function(){ $( '#MoreInfoNew' ).hide(); return true; });
+
+  $("#IncorrectCredentials").click(function(){ $( '#IncorrectCredentials' ).hide(); return true; });
+  if (<%= request.getAttribute("loginFailed") %>) {    
+    $( '#IncorrectCredentials' ).show();
+  }
 });
 </script>
 </body>

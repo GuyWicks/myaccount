@@ -1,0 +1,15 @@
+/*
+ * BL brand / w3css 
+ */
+.bl-theme-dark{background-color: #2d1a36!important;;color:white; }          /* dark grey    */ 
+.bl-theme-mid{background-color: #7e3e98!important;;color:white;}            /* mid grey     */ 
+.bl-theme-light{background-color: #e8e8e7!important;:color:white;}          /* light grey   */ 
+.bl-theme-accent1{background-color: #2d1a36!important;:color:white;}        /* light grey   */ 
+.bl-theme-accent2{background-color: #7e3e98!important;:color:white;}        /* light grey   */ 
+
+.main-page-img {position: absolute; left:0; z-index: -10; min-width: 976px; height: 455px; width: 100%; background-color: white;}
+.main-page-img div {
+  max-width: 1600px; margin: 0 auto; height: 455px; background-position: center top;
+  background-image: url(images/bl-purple-head.png);
+  opacity: 0.4;
+}

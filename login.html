@@ -1,0 +1,44 @@
+<div class="w3-half w3-padding">
+      
+      <form class="w3-container" action='<%=request.getAttribute("actionUrl") %>' method="post" autocomplete="off" name="logonform">
+        <legend>British Library Online Account</legend>
+
+        <div class="w3-row w3-section">
+          <label>Username or email address</label>
+          <input class="w3-input w3-border bl-pale-yellow" 
+              type="text" name="j_username" 
+                            id="username"
+                            required="required" 
+                            autofocus="true"
+                            xplaceholder="Username or email address"
+                            aria-required="true"/>
+        </div>
+
+        <div class="w3-row w3-section">
+          <label>Password</label>
+          <input class="w3-input w3-border bl-pale-yellow"  
+              type="password" 
+              name="j_password"
+              id="password"
+              required="required" 
+              xplaceholder="Password"
+              aria-required="true"/>          
+          
+        </div>
+
+        <div class="w3-row w3-section w3-right" >
+          <a href="#" id="btnNeedHelp" class="w3-btn bl-theme-accent2">Need help?</a>
+          <button id="btnLoginReg" class="w3-btn bl-theme-accent1">Log in<i class="fa fa-caret-right bl-fa-padding"></i></button>
+        </div>
+
+        <div class="w3-row w3-section" >
+          <div class="w3-text-grey w3-hover-text-black"><a href="<%= forgottenUsernameURL %>?ServiceId=<%= registerServiceId %>&referringPage=<%= referringPage %>">Forgot your username?</a></div>
+          <div class="w3-text-grey w3-hover-text-black"><a href="<%= forgottenPasswordURL %>?ServiceId=<%= registerServiceId %>&referringPage=<%= referringPage %>">Forgot your password?</a></div>
+        </div>    
+
+        <div class="w3-row w3-section" >
+          <div class="w3-text-grey w3-hover-text-black"><a href="<%= changePasswordURL %>?referringPage=<%= referringPage %>">Change password<br/>Edit account preferences</a></div>
+        </div>  
+
+      </form>
+    </div>

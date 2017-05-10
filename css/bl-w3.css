@@ -54,6 +54,6 @@ legend {font-size: 1.7em;font-weight: 700;}
   max-width: 1600px; margin: 0 auto; height: 455px; background-position: center top;
   /*background-image: url(images/background-bricks.png);*/
   /*background-image: url(images/bl-blue-head.png);*/
-  background-image: url(/idp/images/bl-grey-head.png);
+  background-image: url(images/bl-grey-head.png);
   opacity: 0.4;
 }
